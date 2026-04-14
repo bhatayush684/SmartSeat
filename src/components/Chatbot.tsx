@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User as UserIcon, Loader2, Calendar } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User as UserIcon, Loader2, Calendar, Armchair, MapPin, Clock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBooking } from '@/contexts/BookingContext';
 import { Location, TIME_SLOTS } from '@/lib/types';
@@ -101,7 +101,7 @@ export default function Chatbot() {
 
         for (const slot of TIME_SLOTS) {
           const booked = getBookingsForSlot(location, slot, today);
-          const freeSeats = allSeats.filter(s => !booked.includes(s.id));
+          const freeSeats = allSeats.filter(s => !booked.some(b => b.seatId === s.id));
           if (freeSeats.length > 0) {
             suggestedSlot = slot;
             availableSeat = freeSeats[Math.floor(Math.random() * freeSeats.length)].id;
@@ -134,6 +134,10 @@ export default function Chatbot() {
               </div>
               <button 
                 onClick={async () => {
+                  if (!user) {
+                    toast.error('Please login first');
+                    return;
+                  }
                   toast.loading('Confirming reservation...', { id: 'bot-booking' });
                   const res = await addBooking({
                     student: user._id, seatId: availableSeat, location, timeSlot: suggestedSlot, date: today, status: 'active'
@@ -145,8 +149,9 @@ export default function Chatbot() {
                     toast.error(res.error || 'Seat just taken by another student!', { id: 'bot-booking' });
                   }
                 }}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 text-xs uppercase tracking-widest"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
               >
+                <CheckCircle2 className="w-4 h-4" />
                 Confirm Booking
               </button>
             </div>
