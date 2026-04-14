@@ -58,6 +58,10 @@ export default function Chatbot() {
     // Simulate network delay for natural feel
     await new Promise(resolve => setTimeout(resolve, 800));
 
+    const today = new Date().toISOString().split('T')[0];
+    const todayBookings = getUserBookingsToday(user._id);
+    let botResponseContent: string | React.ReactNode;
+
     // Context Parsing Logic
     if (command.includes('hello') || command.includes('hi')) {
       botResponseContent = `Hello ${user.name}! I'm your SmartSeat assistant. How can I facilitate your productivity today?`;
