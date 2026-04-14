@@ -137,7 +137,7 @@ export default function ProfilePage() {
           {/* Avatar Section */}
           <div className="flex flex-col items-center">
             <div className="relative">
-              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border-2 border-primary/20">
+              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border-2 border-primary/20">
                 <User className="w-16 h-16 text-primary" />
               </div>
               <motion.button
@@ -237,7 +237,7 @@ export default function ProfilePage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleProfileUpdate}
                   disabled={isLoading}
-                  className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-medium flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 rounded-xl gradient-primary text-primary-foreground font-medium flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
                   {isLoading ? 'Saving...' : 'Save Changes'}
@@ -326,7 +326,7 @@ export default function ProfilePage() {
             whileTap={{ scale: 0.98 }}
             onClick={handlePasswordUpdate}
             disabled={isLoading || !passwordData.currentPassword || !passwordData.newPassword}
-            className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50"
+            className="px-6 py-2 rounded-xl gradient-primary text-primary-foreground font-medium disabled:opacity-50"
           >
             Update Password
           </motion.button>

@@ -154,7 +154,7 @@ export default function SettingsPage() {
             whileTap={{ scale: 0.95 }}
             onClick={saveSettings}
             disabled={isLoading}
-            className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-medium flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2 rounded-xl gradient-primary text-primary-foreground font-medium flex items-center gap-2 disabled:opacity-50"
           >
             <Check className="w-4 h-4" />
             {isLoading ? 'Saving...' : 'Save Changes'}
@@ -210,7 +210,7 @@ export default function SettingsPage() {
                   animate={{
                     x: settings.preferences[setting.key as keyof typeof settings.preferences] ? 24 : 0
                   }}
-                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                  className="absolute top-1 w-4 h-4 bg-primary-foreground rounded-full shadow-sm"
                 />
               </motion.button>
             </motion.div>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                   animate={{
                     x: settings.preferences[setting.key as keyof typeof settings.preferences] ? 24 : 0
                   }}
-                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                  className="absolute top-1 w-4 h-4 bg-primary-foreground rounded-full shadow-sm"
                 />
               </motion.button>
             </motion.div>

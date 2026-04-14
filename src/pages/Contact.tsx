@@ -17,11 +17,11 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const contactTypes = [
-    { value: 'general', label: 'General Inquiry', icon: MessageSquare, color: 'text-blue-500' },
-    { value: 'support', label: 'Technical Support', icon: HelpCircle, color: 'text-orange-500' },
-    { value: 'bug', label: 'Bug Report', icon: Bug, color: 'text-red-500' },
-    { value: 'feature', label: 'Feature Request', icon: Star, color: 'text-green-500' },
-    { value: 'partnership', label: 'Partnership', icon: Users, color: 'text-purple-500' }
+    { value: 'general', label: 'General Inquiry', icon: MessageSquare, color: 'text-primary' },
+    { value: 'support', label: 'Technical Support', icon: HelpCircle, color: 'text-primary' },
+    { value: 'bug', label: 'Bug Report', icon: Bug, color: 'text-destructive' },
+    { value: 'feature', label: 'Feature Request', icon: Star, color: 'text-success' },
+    { value: 'partnership', label: 'Partnership', icon: Users, color: 'text-primary' }
   ];
 
   const contactInfo = [
@@ -231,7 +231,7 @@ export default function ContactPage() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-orange-500 text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+              className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-[0_0_15px_hsla(var(--primary),0.4)]"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

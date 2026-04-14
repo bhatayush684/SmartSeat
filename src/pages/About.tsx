@@ -68,9 +68,9 @@ export default function AboutPage() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', duration: 0.6 }}
-          className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-primary to-orange-500 mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.3)]"
+          className="w-20 h-20 rounded-3xl gradient-primary mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_hsla(var(--primary),0.3)]"
         >
-          <Armchair className="w-10 h-10 text-white" />
+          <Armchair className="w-10 h-10 text-primary-foreground" />
         </motion.div>
         
         <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
@@ -88,7 +88,7 @@ export default function AboutPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-orange-500 text-white font-semibold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(249,115,22,0.4)]"
+              className="px-8 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 shadow-[0_0_20px_hsla(var(--primary),0.4)]"
             >
               Get Started <ArrowRight className="w-4 h-4" />
             </motion.button>
@@ -167,11 +167,11 @@ export default function AboutPage() {
           </div>
           
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-orange-500/20 rounded-3xl blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-primary/5 rounded-3xl blur-3xl" />
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="relative glass rounded-3xl p-8 border border-border/50"
+              className="relative glass-strong rounded-3xl p-8 border border-border/50"
             >
               <Lightbulb className="w-16 h-16 text-primary mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-foreground text-center mb-3">
@@ -284,7 +284,7 @@ export default function AboutPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1 }}
-        className="glass rounded-3xl p-12 text-center border border-border/50 bg-gradient-to-br from-primary/5 to-orange-500/5"
+        className="glass-strong rounded-3xl p-12 text-center border border-border/50 bg-gradient-to-br from-primary/5 to-primary/0"
       >
         <BookOpen className="w-16 h-16 text-primary mx-auto mb-6" />
         <h2 className="text-3xl font-bold text-foreground mb-4">
@@ -299,7 +299,7 @@ export default function AboutPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-orange-500 text-white font-semibold flex items-center gap-2 mx-auto shadow-[0_0_20px_rgba(249,115,22,0.4)]"
+            className="px-8 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold flex items-center gap-2 mx-auto shadow-[0_0_20px_hsla(var(--primary),0.4)]"
           >
             Get Started Today <ArrowRight className="w-4 h-4" />
           </motion.button>

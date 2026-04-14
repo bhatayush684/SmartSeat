@@ -92,6 +92,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {link.label}
                 </Link>
               ))}
+              
+              {/* Separator */}
+              <div className="w-[1px] h-4 bg-border/50 mx-1" />
+
+              {publicLinks.map(link => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    location.pathname === link.to
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <link.icon className="w-4 h-4" />
+                  {link.label}
+                </Link>
+              ))}
             </div>
 
             {/* Notifications, User Menu + Logout */}
@@ -245,6 +263,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {link.label}
               </Link>
             ))}
+
+            <div className="h-[1px] bg-border/50 my-1 mx-2" />
+
             {publicLinks.map(link => (
               <Link
                 key={link.to}

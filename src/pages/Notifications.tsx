@@ -83,12 +83,12 @@ export default function NotificationsPage() {
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'booking': return 'text-blue-500 bg-blue-500/10';
-      case 'system': return 'text-purple-500 bg-purple-500/10';
-      case 'reminder': return 'text-yellow-500 bg-yellow-500/10';
-      case 'warning': return 'text-orange-500 bg-orange-500/10';
-      case 'success': return 'text-green-500 bg-green-500/10';
-      default: return 'text-gray-500 bg-gray-500/10';
+      case 'booking': return 'text-primary bg-primary/10';
+      case 'system': return 'text-primary bg-primary/10';
+      case 'reminder': return 'text-warning bg-warning/10';
+      case 'warning': return 'text-destructive bg-destructive/10';
+      case 'success': return 'text-success bg-success/10';
+      default: return 'text-muted-foreground bg-muted/10';
     }
   };
 

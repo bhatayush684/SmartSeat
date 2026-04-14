@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export default function SeatBookingPage() {
   const { user } = useAuth();
-  const { getBookingsForSlot, getSeatsForLocation, addBooking, getUserBookingsToday } = useBooking();
+  const { bookings, getBookingsForSlot, getSeatsForLocation, addBooking, getUserBookingsToday } = useBooking();
 
   const [location, setLocation] = useState<Location>('library');
   const [timeSlot, setTimeSlot] = useState<string>(TIME_SLOTS[0]);
