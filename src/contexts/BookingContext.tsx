@@ -1,126 +1,263 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Booking, Group, Location } from '@/lib/types';
-import { initialBookings, initialGroups, librarySeats, labSeats } from '@/lib/data';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Booking, Group, Location, Student } from '@/lib/types';
+import { librarySeats, labSeats } from '@/lib/data';
+import api from '@/lib/api';
+import { useAuth } from './AuthContext';
 
 interface BookingContextType {
   bookings: Booking[];
   groups: Group[];
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => { success: boolean; error?: string };
-  cancelBooking: (bookingId: string) => void;
-  checkIn: (bookingId: string) => void;
+  addBooking: (booking: Omit<Booking, '_id' | 'createdAt'>) => Promise<{ success: boolean; error?: string }>;
+  cancelBooking: (bookingId: string) => Promise<void>;
+  checkIn: (bookingId: string) => Promise<void>;
   getBookingsForSlot: (location: Location, timeSlot: string, date: string) => Booking[];
   getUserBookingsToday: (studentId: string) => Booking[];
   getUserBookings: (studentId: string) => Booking[];
   getNoShowCount: (studentId: string) => number;
-  createGroup: (group: Omit<Group, 'id' | 'code' | 'seatIds'>) => Group;
-  joinGroup: (code: string, studentId: string) => { success: boolean; error?: string; group?: Group };
+  markNoShow: (bookingId: string) => Promise<void>;
+  createGroup: (group: Omit<Group, '_id' | 'code' | 'seatIds'>) => Promise<{ success: boolean; group?: Group; error?: string }>;
+  joinGroup: (code: string) => Promise<{ success: boolean; error?: string; group?: Group }>;
   getSeatsForLocation: (location: Location) => typeof librarySeats;
   getTotalBookingsToday: () => number;
   getPeakTimeSlot: () => string;
   getNoShowCountTotal: () => number;
   getSeatUtilization: (location: Location) => number;
+  users: Student[];
+  conflicts: ActivityLog[];
+  updateUserRole: (userId: string, role: string) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
 }
 
 const BookingContext = createContext<BookingContextType | null>(null);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  const [groups, setGroups] = useState<Group[]>(initialGroups);
-
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
   const today = new Date().toISOString().split('T')[0];
+
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ['bookings', 'all'],
+    queryFn: async () => {
+      // If admin, fetch all bookings. If student, fetch their bookings plus active map bookings
+      if (user?.role === 'admin') {
+        const { data } = await api.get('/bookings/admin/all');
+        return data as Booking[];
+      } else if (user) {
+        // Fetch user's bookings
+        const userRes = await api.get('/bookings/my');
+        // Fetch active map bookings for today to populate seat map
+        const mapRes = await api.get(`/bookings/map?date=${today}`);
+        
+        // Merge without duplicates (using _id)
+        const mapBookings = mapRes.data;
+        const myBookings = userRes.data;
+        
+        const merged = [...myBookings];
+        mapBookings.forEach((mb: Booking) => {
+          if (!merged.find((b: Booking) => b._id === mb._id)) {
+            merged.push(mb);
+          }
+        });
+        return merged as Booking[];
+      }
+      return [];
+    },
+    enabled: !!user,
+    refetchInterval: 5000, // Poll every 5s for real-time seat availability
+  });
+
+  const { data: groups = [] } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => {
+      if (user?.role === 'admin') {
+        const { data } = await api.get('/groups/admin/all');
+        return data as Group[];
+      } else if (user) {
+        const { data } = await api.get('/groups/my');
+        return data as Group[];
+      }
+      return [];
+    },
+    enabled: !!user
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      if (user?.role === 'admin') {
+        const { data } = await api.get('/auth');
+        return data;
+      }
+      return [];
+    },
+    enabled: !!user && user.role === 'admin'
+  });
+
+  const { data: conflicts = [] } = useQuery({
+    queryKey: ['conflicts'],
+    queryFn: async () => {
+      if (user?.role === 'admin') {
+        const { data } = await api.get('/bookings/admin/conflicts');
+        return data;
+      }
+      return [];
+    },
+    enabled: !!user && user.role === 'admin'
+  });
 
   const getSeatsForLocation = (location: Location) =>
     location === 'library' ? librarySeats : labSeats;
 
-  const getBookingsForSlot = useCallback((location: Location, timeSlot: string, date: string) =>
-    bookings.filter(b => b.location === location && b.timeSlot === timeSlot && b.date === date && b.status !== 'cancelled'),
-    [bookings]);
-
-  const getUserBookingsToday = useCallback((studentId: string) =>
-    bookings.filter(b => b.studentId === studentId && b.date === today && b.status !== 'cancelled'),
-    [bookings, today]);
-
-  const getUserBookings = useCallback((studentId: string) =>
-    bookings.filter(b => b.studentId === studentId),
-    [bookings]);
-
-  const getNoShowCount = useCallback((studentId: string) =>
-    bookings.filter(b => b.studentId === studentId && b.status === 'no-show').length,
-    [bookings]);
-
-  const addBooking = useCallback((booking: Omit<Booking, 'id' | 'createdAt'>) => {
-    const userToday = bookings.filter(b => b.studentId === booking.studentId && b.date === today && b.status !== 'cancelled');
-    if (userToday.length >= 2) return { success: false, error: 'Maximum 2 bookings per day reached' };
-
-    const existing = bookings.find(b =>
-      b.seatId === booking.seatId && b.timeSlot === booking.timeSlot &&
-      b.date === booking.date && b.status !== 'cancelled'
+  const getBookingsForSlot = (location: Location, timeSlot: string, date: string) => {
+    const activeBookings = allBookings.filter(b => b.location === location && b.timeSlot === timeSlot && b.date === date && b.status === 'active');
+    
+    // Also consider seats reserved by groups for this slot
+    const groupBookings = groups.filter(g => g.location === location && g.timeSlot === timeSlot && g.date === date);
+    
+    // Convert group-reserved seats into "pseudo-bookings" for the map logic if not already in activeBookings
+    const groupPseudoBookings = groupBookings.flatMap(g => 
+      g.seatIds.map(sid => ({
+        _id: `group-${g._id}-${sid}`,
+        seatId: sid,
+        status: 'active' as const,
+        student: g.creatorId, // Show as creator's booking
+        location: g.location as Location,
+        timeSlot: g.timeSlot!,
+        date: g.date!,
+        createdAt: new Date().toISOString()
+      }))
     );
-    if (existing) return { success: false, error: 'Seat already booked for this slot' };
 
-    const newBooking: Booking = {
-      ...booking,
-      id: `B${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    setBookings(prev => [...prev, newBooking]);
-    return { success: true };
-  }, [bookings, today]);
+    // Merge group seats that aren't already covered by a real booking
+    const merged = [...activeBookings];
+    groupPseudoBookings.forEach((gb) => {
+        if (!merged.find(b => b.seatId === gb.seatId)) {
+            merged.push(gb);
+        }
+    });
 
-  const cancelBooking = useCallback((bookingId: string) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' as const } : b));
-  }, []);
+    return merged as Booking[];
+  };
 
-  const checkIn = useCallback((bookingId: string) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'checked-in' as const } : b));
-  }, []);
+  const getUserBookingsToday = (studentId: string) =>
+    allBookings.filter(b => typeof b.student === 'object' ? b.student._id === studentId : b.student === studentId).filter(b => b.date === today && b.status === 'active');
 
-  const createGroup = useCallback((group: Omit<Group, 'id' | 'code' | 'seatIds'>) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const newGroup: Group = { ...group, id: `G${Date.now()}`, code, seatIds: [] };
-    setGroups(prev => [...prev, newGroup]);
-    return newGroup;
-  }, []);
+  const getUserBookings = (studentId: string) =>
+    allBookings.filter(b => typeof b.student === 'object' ? b.student._id === studentId : b.student === studentId);
 
-  const joinGroup = useCallback((code: string, studentId: string) => {
-    const group = groups.find(g => g.code === code);
-    if (!group) return { success: false, error: 'Group not found' };
-    if (group.memberIds.includes(studentId)) return { success: false, error: 'Already in this group' };
-    if (group.memberIds.length >= group.size) return { success: false, error: 'Group is full' };
+  const getNoShowCount = (studentId: string) => 0; // Deprecated with simple backend
 
-    const updated = { ...group, memberIds: [...group.memberIds, studentId] };
-    setGroups(prev => prev.map(g => g.id === group.id ? updated : g));
-    return { success: true, group: updated };
-  }, [groups]);
+  const addBooking = async (booking: Omit<Booking, '_id' | 'createdAt'>) => {
+    try {
+      await api.post('/bookings', booking);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      return { success: true };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Booking failed'
+        : 'Booking failed';
+      return { success: false, error: errorMessage };
+    }
+  };
 
-  const getTotalBookingsToday = useCallback(() =>
-    bookings.filter(b => b.date === today && b.status !== 'cancelled').length,
-    [bookings, today]);
+  const cancelBooking = async (bookingId: string) => {
+    try {
+      await api.delete(`/bookings/${bookingId}`);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    } catch (err) {
+      console.error('Cancel booking error:', err);
+    }
+  };
 
-  const getPeakTimeSlot = useCallback(() => {
+  const checkIn = async (bookingId: string) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/checkin`);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    } catch (err) {
+      console.error('Check-in error:', err);
+    }
+  };
+
+  const markNoShow = async (bookingId: string) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/noshow`);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    } catch (err) {
+      console.error('Mark no-show error:', err);
+    }
+  };
+
+  const updateUserRole = async (userId: string, role: string) => {
+    try {
+      await api.patch(`/auth/${userId}/role`, { role });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    } catch (err) {
+      console.error('Update user role error:', err);
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      await api.delete(`/auth/${userId}`);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    } catch (err) {
+      console.error('Delete user error:', err);
+    }
+  };
+
+  const createGroup = async (group: Omit<Group, '_id' | 'code' | 'seatIds'>) => {
+    try {
+      const { data } = await api.post('/groups', group);
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      return { success: true, group: data };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to create group'
+        : 'Failed to create group';
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const joinGroup = async (code: string) => {
+    try {
+      const { data } = await api.post('/groups/join', { code });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      return { success: true, group: data };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to join group'
+        : 'Failed to join group';
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const getTotalBookingsToday = () => allBookings.filter(b => b.date === today && b.status === 'active').length;
+  
+  const getPeakTimeSlot = () => {
     const counts: Record<string, number> = {};
-    bookings.filter(b => b.date === today && b.status !== 'cancelled')
+    allBookings.filter(b => b.date === today && b.status === 'active')
       .forEach(b => { counts[b.timeSlot] = (counts[b.timeSlot] || 0) + 1; });
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-  }, [bookings, today]);
+  };
 
-  const getNoShowCountTotal = useCallback(() =>
-    bookings.filter(b => b.status === 'no-show').length,
-    [bookings]);
+  const getNoShowCountTotal = () => 0;
 
-  const getSeatUtilization = useCallback((location: Location) => {
+  const getSeatUtilization = (location: Location) => {
     const seats = getSeatsForLocation(location);
-    const booked = bookings.filter(b => b.location === location && b.date === today && b.status !== 'cancelled');
+    const booked = allBookings.filter(b => b.location === location && b.date === today && b.status === 'active');
     const totalSlots = seats.length * 6; // 6 time slots
     return totalSlots > 0 ? Math.round((booked.length / totalSlots) * 100) : 0;
-  }, [bookings, today]);
+  };
 
   return (
     <BookingContext.Provider value={{
-      bookings, groups, addBooking, cancelBooking, checkIn,
+      bookings: allBookings, groups, addBooking, cancelBooking, checkIn,
       getBookingsForSlot, getUserBookingsToday, getUserBookings,
-      getNoShowCount, createGroup, joinGroup, getSeatsForLocation,
+      getNoShowCount, markNoShow, createGroup, joinGroup, getSeatsForLocation,
       getTotalBookingsToday, getPeakTimeSlot, getNoShowCountTotal, getSeatUtilization,
+      users, conflicts, updateUserRole, deleteUser
     }}>
       {children}
     </BookingContext.Provider>

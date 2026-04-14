@@ -18,13 +18,13 @@ export default function SeatBookingPage() {
   const today = new Date().toISOString().split('T')[0];
   const seats = getSeatsForLocation(location);
   const bookedSeats = getBookingsForSlot(location, timeSlot, today);
-  const todayBookings = getUserBookingsToday(user!.id);
+  const todayBookings = getUserBookingsToday(user!._id);
   const canBook = todayBookings.length < 2;
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!selectedSeat) return;
-    const result = addBooking({
-      studentId: user!.id,
+    const result = await addBooking({
+      student: user!._id,
       seatId: selectedSeat,
       location,
       timeSlot,
@@ -59,29 +59,47 @@ export default function SeatBookingPage() {
 
       {/* Location Select */}
       <div>
-        <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-          <MapPin className="w-4 h-4" /> Location
+        <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" /> Select Your Location
         </label>
-        <div className="flex gap-3">
-          {LOCATIONS.map(loc => (
-            <motion.button
-              key={loc.value}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { setLocation(loc.value); setSelectedSeat(null); }}
-              className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                location === loc.value
-                  ? 'border-primary/50 bg-primary/10 glow-primary-sm'
-                  : 'border-border bg-card hover:border-muted-foreground/30'
-              }`}
-            >
-              <span className="text-2xl">{loc.icon}</span>
-              <p className="font-semibold text-foreground mt-2">{loc.label}</p>
-              <p className="text-xs text-muted-foreground">
-                {loc.value === 'library' ? '8 tables, 32 seats' : '6 tables, 36 seats'}
-              </p>
-            </motion.button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {LOCATIONS.map(loc => {
+            const isActive = location === loc.value;
+            const currentBookings = bookings.filter(b => b.location === loc.value && b.date === today && b.status !== 'cancelled').length;
+            const total = loc.value === 'library' ? 32 : 36;
+            
+            return (
+              <motion.button
+                key={loc.value}
+                whileHover={{ y: -2, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { setLocation(loc.value); setSelectedSeat(null); }}
+                className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+                  isActive
+                    ? 'border-primary/50 bg-primary/10 shadow-[0_0_20px_hsla(var(--primary),0.1)]'
+                    : 'border-border bg-card/40 hover:border-primary/30 hover:bg-card/60'
+                }`}
+              >
+                {isActive && <motion.div layoutId="active-loc" className="absolute top-0 right-0 w-12 h-12 bg-primary/10 rounded-bl-3xl flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-primary" /></motion.div>}
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform group-hover:scale-110 ${isActive ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                    {loc.icon}
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg text-foreground">{loc.label}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                         {total} Seats Total
+                       </span>
+                       <span className="text-[10px] text-muted-foreground font-medium">
+                         {total - currentBookings} available
+                       </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
@@ -119,7 +137,7 @@ export default function SeatBookingPage() {
         <SeatMap
           seats={seats}
           bookedSeats={bookedSeats}
-          currentUserId={user!.id}
+          currentUserId={user!._id}
           selectedSeatId={selectedSeat}
           onSelectSeat={id => setSelectedSeat(selectedSeat === id ? null : id)}
           location={location}

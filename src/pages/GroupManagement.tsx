@@ -4,29 +4,32 @@ import { useBooking } from '@/contexts/BookingContext';
 import { motion } from 'framer-motion';
 import { Users, Plus, ArrowRight, Copy, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { dummyStudents } from '@/lib/data';
 
 export default function GroupManagement() {
   const { user } = useAuth();
   const { groups, createGroup, joinGroup } = useBooking();
   const [tab, setTab] = useState<'my' | 'create' | 'join'>('my');
   const [groupName, setGroupName] = useState('');
-  const [groupSize, setGroupSize] = useState(4);
+  const [groupMaxMembers, setGroupMaxMembers] = useState(4);
   const [joinCode, setJoinCode] = useState('');
 
-  const myGroups = groups.filter(g => g.memberIds.includes(user!.id));
+  const myGroups = groups.filter(g => g.memberIds.some(m => (typeof m === 'object' ? m._id : m) === user!._id));
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!groupName.trim()) { toast.error('Enter a group name'); return; }
-    const g = createGroup({ name: groupName, size: groupSize, creatorId: user!.id, memberIds: [user!.id] });
-    toast.success(`Group created! Code: ${g.code}`);
-    setGroupName('');
-    setTab('my');
+    const result = await createGroup({ name: groupName, maxMembers: groupMaxMembers, creatorId: user!._id, memberIds: [user!._id], seatIds: [] });
+    if (result.success && result.group) {
+        toast.success(`Group created! Code: ${result.group.code}`);
+        setGroupName('');
+        setTab('my');
+    } else {
+        toast.error(result.error);
+    }
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!joinCode.trim()) { toast.error('Enter a group code'); return; }
-    const result = joinGroup(joinCode.toUpperCase(), user!.id);
+    const result = await joinGroup(joinCode.toUpperCase());
     if (result.success) {
       toast.success('Joined group successfully!');
       setJoinCode('');
@@ -77,7 +80,7 @@ export default function GroupManagement() {
           ) : (
             myGroups.map(group => (
               <motion.div
-                key={group.id}
+                key={group._id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass rounded-xl p-5"
@@ -86,7 +89,7 @@ export default function GroupManagement() {
                   <div>
                     <h3 className="font-semibold text-foreground">{group.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {group.memberIds.length}/{group.size} members
+                      {group.memberIds.length}/{group.maxMembers} members
                     </p>
                   </div>
                   <button
@@ -98,12 +101,17 @@ export default function GroupManagement() {
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {group.memberIds.map(memberId => {
-                    const member = dummyStudents.find(s => s.id === memberId);
+                  {group.memberIds.map(member => {
+                    const memberName = typeof member === 'object' ? member.name : member;
+                    const memberId = typeof member === 'object' ? member._id : member;
+                    const isCreator = typeof group.creatorId === 'object' 
+                      ? group.creatorId._id === memberId 
+                      : group.creatorId === memberId;
+                      
                     return (
                       <span key={memberId} className="px-2.5 py-1 rounded-full bg-secondary text-xs text-secondary-foreground font-medium">
-                        {member?.name || memberId}
-                        {memberId === group.creatorId && ' 👑'}
+                        {memberName}
+                        {isCreator && ' 👑'}
                       </span>
                     );
                   })}
@@ -136,9 +144,9 @@ export default function GroupManagement() {
               {[2, 3, 4, 5, 6].map(s => (
                 <button
                   key={s}
-                  onClick={() => setGroupSize(s)}
+                  onClick={() => setGroupMaxMembers(s)}
                   className={`w-12 h-12 rounded-xl font-semibold transition-all ${
-                    groupSize === s ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                    groupMaxMembers === s ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-accent'
                   }`}
                 >
                   {s}

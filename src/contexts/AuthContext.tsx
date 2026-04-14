@@ -1,40 +1,73 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Student } from '@/lib/types';
-import { dummyStudents } from '@/lib/data';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import api from '@/lib/api';
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'admin';
+  avatar?: string;
+  department?: string;
+  year?: number;
+  totalBookings?: number;
+  noShowCount?: number;
+  loginCount?: number;
+  createdAt?: string;
+}
 
 interface AuthContextType {
-  user: Student | null;
-  login: (studentId: string, password: string) => { success: boolean; error?: string };
+  user: User | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAdmin: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Student | null>(() => {
-    const stored = localStorage.getItem('smartseat_user');
-    if (stored) {
-      try { return JSON.parse(stored); } catch { return null; }
-    }
-    return null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback((studentId: string, password: string) => {
-    const student = dummyStudents.find(s => s.id === studentId && s.password === password);
-    if (!student) return { success: false, error: 'Invalid Student ID or password' };
-    setUser(student);
-    localStorage.setItem('smartseat_user', JSON.stringify(student));
-    return { success: true };
+  const fetchUser = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const { data } = await api.get('/auth/me');
+        setUser(data);
+      } catch (error) {
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      setUser({ _id: data._id, name: data.name, email: data.email, role: data.role });
+      localStorage.setItem('token', data.token);
+      return { success: true };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Login failed'
+        : 'Login failed';
+      return { success: false, error: errorMessage };
+    }
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('smartseat_user');
+    localStorage.removeItem('token');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, login, logout, isAdmin: user?.role === 'admin', isLoading }}>
       {children}
     </AuthContext.Provider>
   );

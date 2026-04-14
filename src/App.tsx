@@ -11,6 +11,11 @@ import SeatBooking from "@/pages/SeatBooking";
 import GroupManagement from "@/pages/GroupManagement";
 import MyBookings from "@/pages/MyBookings";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+import Notifications from "@/pages/Notifications";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +48,11 @@ const App = () => (
               <Route path="/groups" element={<ProtectedRoute><GroupManagement /></ProtectedRoute>} />
               <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BookingProvider>

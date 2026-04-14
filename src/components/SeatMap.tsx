@@ -21,14 +21,17 @@ export default function SeatMap({ seats, bookedSeats, currentUserId, selectedSea
   const getSeatStatus = (seatId: string) => {
     const booking = bookedSeats.find(b => b.seatId === seatId);
     if (!booking) return selectedSeatId === seatId ? 'selected' : 'available';
-    if (booking.studentId === currentUserId) return 'reserved';
+    
+    // Distinguish based on pseudo-bookings (group-*) or real bookings
+    const studentId = typeof booking.student === 'object' ? booking.student._id : booking.student;
+    if (studentId === currentUserId) return 'reserved';
     return 'booked';
   };
 
   const statusStyles: Record<string, string> = {
     available: 'seat-available cursor-pointer hover:scale-110',
     booked: 'seat-booked cursor-not-allowed opacity-60',
-    reserved: 'seat-reserved',
+    reserved: 'seat-reserved hover:scale-110',
     selected: 'seat-selected cursor-pointer',
   };
 
@@ -38,7 +41,7 @@ export default function SeatMap({ seats, bookedSeats, currentUserId, selectedSea
       <div className="flex flex-wrap gap-4 text-xs font-medium">
         {[
           { label: 'Available', cls: 'seat-available' },
-          { label: 'Booked', cls: 'seat-booked' },
+          { label: 'Booked / Group Reserved', cls: 'seat-booked' },
           { label: 'Your Booking', cls: 'seat-reserved' },
           { label: 'Selected', cls: 'seat-selected' },
         ].map(item => (
@@ -64,14 +67,14 @@ export default function SeatMap({ seats, bookedSeats, currentUserId, selectedSea
             </p>
             <div className="grid grid-cols-2 gap-2">
               {tableSeats.map(seat => {
-                const status = getSeatStatus(seat.id);
+                const status = getSeatStatus(seat._id);
                 return (
                   <motion.button
-                    key={seat.id}
-                    whileHover={status === 'available' || status === 'selected' ? { scale: 1.08 } : {}}
+                    key={seat._id}
+                    whileHover={status === 'available' || status === 'selected' || status === 'reserved' ? { scale: 1.08 } : {}}
                     whileTap={status === 'available' || status === 'selected' ? { scale: 0.95 } : {}}
                     onClick={() => {
-                      if (status === 'available' || status === 'selected') onSelectSeat(seat.id);
+                      if (status === 'available' || status === 'selected' || status === 'reserved') onSelectSeat(seat._id);
                     }}
                     disabled={status === 'booked'}
                     className={`py-2 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 ${statusStyles[status]}`}

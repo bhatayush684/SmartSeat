@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export default function MyBookings() {
   const { user } = useAuth();
   const { getUserBookings, cancelBooking, checkIn } = useBooking();
-  const bookings = getUserBookings(user!.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const bookings = getUserBookings(user!._id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const statusConfig: Record<string, { label: string; cls: string; icon: typeof CheckCircle2 }> = {
     active: { label: 'Active', cls: 'bg-primary/15 text-primary', icon: Clock },
@@ -47,7 +47,7 @@ export default function MyBookings() {
             const StatusIcon = config.icon;
             return (
               <motion.div
-                key={booking.id}
+                key={booking._id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
@@ -75,7 +75,7 @@ export default function MyBookings() {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleCheckIn(booking.id)}
+                        onClick={() => handleCheckIn(booking._id)}
                         className="px-4 py-2 rounded-lg gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5"
                       >
                         <QrCode className="w-4 h-4" /> Check In
@@ -83,7 +83,7 @@ export default function MyBookings() {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleCancel(booking.id)}
+                        onClick={() => handleCancel(booking._id)}
                         className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors"
                       >
                         Cancel
